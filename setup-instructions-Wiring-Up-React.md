@@ -1,139 +1,116 @@
-# TP1 : Configuration Initiale d'un Projet Micro Frontend
+# TP2 : Implémentation du Montage Conditionnel
 
 ## Objectif
-Dans ce TP, vous allez mettre en place la configuration de base d'un micro-frontend utilisant React et Webpack. Cette configuration servira de fondation pour développer des applications modulaires et indépendantes.
+Dans ce TP, nous allons mettre en place un système de montage conditionnel qui permettra à notre micro-frontend de fonctionner à la fois en mode isolé (développement) et en mode intégré (production).
 
-## Prérequis
-- Node.js installé sur votre machine
-- Connaissance de base de JavaScript et React
-- Un éditeur de code (VS Code recommandé)
+## Contexte
+Le montage conditionnel est un concept clé des micro-frontends qui permet de :
+- Développer et tester l'application de manière isolée
+- Intégrer l'application dans un container
+- Gérer différents environnements (développement vs production)
 
 ## Instructions Pas à Pas
 
-### 1. Création du Projet
-```bash
-# Créez un nouveau dossier pour votre projet
-mkdir marketing
-cd marketing
+### 1. Modification du Point de Montage
+Modifiez le fichier `public/index.html` :
 
-# Initialisez un nouveau projet npm
-npm init -y
-```
-
-### 2. Installation des Dépendances
-```bash
-# Installation des dépendances React
-npm install @material-ui/core@4.11.0 @material-ui/icons@4.9.1 react@17.0.1 react-dom@17.0.1 react-router-dom@5.2.0
-
-# Installation des dépendances de développement
-npm install --save-dev @babel/core@7.12.3 @babel/plugin-transform-runtime@7.12.1 @babel/preset-env@7.12.1 @babel/preset-react@7.12.1 babel-loader@8.1.0 clean-webpack-plugin@3.0.0 css-loader@5.0.0 html-webpack-plugin@4.5.0 style-loader@2.0.0 webpack@5.88.0 webpack-cli@4.1.0 webpack-dev-server@3.11.0 webpack-merge@5.2.0
-```
-
-### 3. Configuration de Webpack
-Créez un dossier `config` à la racine du projet et ajoutez les fichiers suivants :
-
-#### webpack.common.js
-```javascript
-module.exports = {
-  module: {
-    rules: [
-      {
-        test: /\.m?js$/,
-        exclude: /node_modules/,
-        use: {
-          loader: 'babel-loader',
-          options: {
-            presets: ['@babel/preset-react', '@babel/preset-env'],
-            plugins: ['@babel/plugin-transform-runtime'],
-          },
-        },
-      },
-    ],
-  },
-};
-```
-
-#### webpack.dev.js
-```javascript
-const { merge } = require('webpack-merge');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const commonConfig = require('./webpack.common');
-
-const devConfig = {
-  mode: 'development',
-  devServer: {
-    port: 8081,
-    historyApiFallback: {
-      index: 'index.html',
-    },
-  },
-  plugins: [
-    new HtmlWebpackPlugin({
-      template: './public/index.html',
-    }),
-  ],
-};
-
-module.exports = merge(commonConfig, devConfig);
-```
-
-### 4. Création des Fichiers de Base
-```bash
-# Créez un dossier public et src
-mkdir public src
-
-# Créez les fichiers initiaux
-touch public/index.html
-touch src/index.js
-```
-
-#### public/index.html
 ```html
 <!DOCTYPE html>
 <html>
   <head></head>
-  <body></body>
+  <body>
+    <div id="_marketing-dev-root"></div>
+  </body>
 </html>
 ```
 
-#### src/index.js
+**Explications:**
+- L'ID `_marketing-dev-root` est unique pour éviter les conflits avec d'autres micro-frontends
+- Le préfixe `_marketing` indique clairement l'appartenance au module marketing
+- Le suffixe `-dev-root` indique qu'il s'agit du point de montage de développement
+
+### 2. Création du Fichier Bootstrap
+Créez un nouveau fichier `src/bootstrap.js` :
+
 ```javascript
-console.log('Hi there');
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+// Mount function to start up the app
+const mount = (el) => {
+  ReactDOM.render(<h1>Hi there!</h1>, el);
+};
+
+// If we are in development and in isolation,
+// call mount immediately
+if (process.env.NODE_ENV === 'development') {
+  const devRoot = document.querySelector('#_marketing-dev-root');
+
+  if (devRoot) {
+    mount(devRoot);
+  }
+}
+
+// We are running through container
+// and we should export the mount function
+export { mount };
 ```
 
-## Explications
+**Explications:**
+- La fonction `mount` encapsule la logique de rendu de l'application
+- La vérification de `process.env.NODE_ENV` permet un comportement différent en développement
+- L'export de `mount` permet son utilisation par le container
+- Le montage conditionnel permet le développement isolé
 
-### Pourquoi cette Configuration ?
+### 3. Modification du Point d'Entrée
+Modifiez le fichier `src/index.js` :
 
-1. **Babel Configuration**
-   - Les presets React et Env permettent de transformer le code JSX et ES6+ en JavaScript compatible avec les navigateurs
-   - Le plugin transform-runtime aide à gérer les polyfills de manière optimisée
+```javascript
+import('./bootstrap');
+```
 
-2. **Webpack Configuration**
-   - La séparation en fichiers common et dev permet une meilleure maintenance et extensibilité
-   - Le port 8081 est défini pour éviter les conflits avec d'autres micro-frontends
-   - historyApiFallback est nécessaire pour le routage côté client avec React Router
-
-3. **Structure du Projet**
-   - La structure modulaire facilite l'ajout futur de fonctionnalités
-   - Le dossier public contient les assets statiques
-   - Le dossier src contiendra tout le code source de l'application
+**Explications:**
+- L'import dynamique permet un chargement asynchrone du code
+- Cette approche est plus flexible pour la gestion des dépendances
+- Elle facilite également le code splitting
 
 ## Points d'Attention
 
-- Assurez-vous que les versions des dépendances sont compatibles entre elles
-- Vérifiez que le port 8081 n'est pas déjà utilisé sur votre machine
-- La configuration Webpack est minimale pour commencer, mais elle sera enrichie au fur et à mesure
+### Nommage des IDs
+- Utilisez des IDs uniques et descriptifs
+- Préfixez les IDs avec le nom de votre micro-frontend
+- Évitez les conflits potentiels avec d'autres applications
+
+### Fonction Mount
+- La fonction mount doit être pure et réutilisable
+- Elle ne doit pas avoir d'effets de bord
+- Elle doit accepter l'élément de montage comme paramètre
+
+### Développement vs Production
+- Le code doit fonctionner différemment selon l'environnement
+- En développement : montage automatique
+- En production : export de la fonction mount
 
 ## Vérification
-Pour vérifier que tout fonctionne :
+Pour tester votre implémentation :
+
 ```bash
 npm start
 ```
-Vous devriez voir un message "Hi there" dans la console du navigateur.
 
-## Pour Aller Plus Loin
-- Explorez la documentation de Webpack pour comprendre chaque configuration
-- Familiarisez-vous avec les différents loaders et plugins utilisés
-- Réfléchissez à comment cette configuration pourrait évoluer pour supporter d'autres fonctionnalités
+Vous devriez voir :
+1. Le message "Hi there!" s'afficher dans le navigateur
+2. Aucune erreur dans la console
+3. Le montage se faire automatiquement en développement
+
+## Exercices Supplémentaires
+1. Modifiez le contenu rendu pour inclure plus d'éléments React
+2. Ajoutez des paramètres à la fonction mount pour la rendre plus flexible
+3. Implémentez une fonction unmount pour le nettoyage
+
+## Questions de Compréhension
+- Pourquoi avons-nous besoin d'un montage conditionnel ?
+- Quel est le rôle de la fonction mount ?
+- Pourquoi utilisons-nous un import dynamique dans index.js ?
+- Comment cette architecture facilite-t-elle l'intégration avec un container ?
 
