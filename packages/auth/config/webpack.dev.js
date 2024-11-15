@@ -55,5 +55,10 @@ const devConfig = {
   ],
 };
 
-// Combine la config commune avec celle de développement
+// Combine la configuration commune avec celle de développement
+// C'est très utile car :
+// - La config commune contient les règles de base (loaders, règles de build...)
+// - La config de dev contient les spécificités pour le développement (port, hot reload...)
+// En les combinant, on évite la duplication de code et on peut facilement
+// avoir des configs différentes par environnement (dev, prod, test...)
 module.exports = merge(commonConfig, devConfig);
